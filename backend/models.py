@@ -41,7 +41,7 @@ class PickPlaylist(models.Model):
 
 class PickSession(models.Model):
     '''
-    PicSession model. Creates when user wants to play in pick game and generates
+    PickSession model. Creates when user wants to play in pick game and generates
     new pairs based on youtube playlist videos.
     '''
 
