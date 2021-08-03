@@ -1,3 +1,4 @@
+from backend.services.pickle import make_pairs_from_videos_list
 from rest_framework.response import Response
 from rest_framework.decorators import \
     api_view, permission_classes, authentication_classes
@@ -5,7 +6,7 @@ from rest_framework.authentication import \
     SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated
 from .services.youtube import YoutubeApi
-from .models import PickPlaylist, YoutubeVideo, PickSession, PickPair
+from .models import PickPlaylist, YoutubeVideo, PickSession
 from rest_framework.status import HTTP_201_CREATED
 
 
@@ -18,6 +19,8 @@ def create_pick_playlist(request):
 
         Youtube playlist id must be provided in
             youtube_playlist_id (str) field in json data.
+
+        Example data: {"youtube_playlist_id": "PLSUE3Jrs90TDCt2rDjxWWb5EdZFlF8RLJ"}
     '''
 
     playlist_info = YoutubeApi.get_playlist_info(request.data['youtube_playlist_id'])
@@ -44,6 +47,8 @@ def create_pick_session(request):
 
         Pick playlist id must be provided in
             pick_playlist_id (int) field in json data.
+
+        Example data: {"pick_playlist_id": 10}
     '''
 
     pick_session = PickSession.objects.create(
@@ -56,28 +61,10 @@ def create_pick_session(request):
         pick_playlist=request.data['pick_playlist_id']
     ))
 
-    current_pair = []
-    pairs = []
-    for i, video in enumerate(pick_playlist_videos):
-        current_pair.append(video)
-        pair = None
-
-        if i+1 == len(pick_playlist_videos) and len(current_pair) == 1:
-            pair = PickPair.objects.create(
-                pick_session=pick_session,
-                single=True
-            )
-            pair.videos_pair.set(current_pair)
-
-        if len(current_pair) == 2:
-            pair = PickPair.objects.create(
-                pick_session=pick_session,
-            )
-            pair.videos_pair.set(current_pair)
-            current_pair = []
-
-        if pair:
-            pairs.append(pair)
+    pairs = make_pairs_from_videos_list(
+        pick_playlist_videos,
+        pick_session
+    )
 
     return Response(
         {
