@@ -3,7 +3,9 @@ import os
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
- 
+from django.conf import settings
+
+
 
 class YoutubeApi:
     youtube_service = None
@@ -19,7 +21,7 @@ class YoutubeApi:
 
         api_service_name = "youtube"
         api_version = "v3"
-        client_secrets_file = os.environ["YOUTUBE_CLIENT_CREDS_FILENAME"]
+        client_secrets_file = settings.YOUTUBE_CREDENTIALS_FILE
 
         flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
             client_secrets_file, scopes)

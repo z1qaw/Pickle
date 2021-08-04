@@ -1,4 +1,4 @@
-from backend.models import PickSession, PickPair
+from backend.models import PickSession, PickPair, PickSessionRound
 from django.db.models import Q
 
 
@@ -29,14 +29,39 @@ def make_pairs_from_videos_list(pick_playlist_videos: list, pick_session: PickSe
     return pairs
 
 
-def make_completed_pairs_from_pick_session(pick_session: PickSession):
+def make_pairs_round(pick_session, pairs):
+    round = PickSessionRound.objects.create(pick_session=pick_session)
+    round.pickpair_set.set(pairs)
+    return round
+
+
+def make_pick_round_from_videos_list(pick_session, videos):
+    pairs = make_pairs_from_videos_list(videos, pick_session)
+    return make_pairs_round(pick_session, pairs)
+
+
+def get_round_completed_choices(pick_round_id):
     query = Q(completed=True)
     query.add(Q(single=True), Q.OR)
-    query.add(Q(pick_session=pick_session), Q.AND)
+    completed_round_pairs = PickSessionRound.objects.get(id=pick_round_id) \
+        .pickpair_set.filter(query)
 
-    completed_pairs = PickPair.objects.filter(query)
-    next_videos = []
-    for pair in completed_pairs:
-        next_videos.append(pair.pick)
-    
-    return make_pairs_from_videos_list(next_videos, pick_session)
+    chosen_videos = []
+    for pair in completed_round_pairs:
+        if pair.single:
+            chosen_videos.append(pair.videos_pair.all()[0])
+        else:
+            chosen_videos.append(pair.pick)
+    return chosen_videos
+
+
+def is_round_completed(pick_round_id):
+    query = Q(completed=True)
+    query.add(Q(single=True), Q.OR)
+    completed_round_pairs = PickSessionRound.objects.get(id=pick_round_id) \
+        .pickpair_set.filter(query)
+
+    if not completed_round_pairs:
+        return True
+    else:
+        return False

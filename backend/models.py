@@ -22,14 +22,15 @@ class PickPair(models.Model):
 
         This model instances creates on every pick session creation.
     '''
-
-    pick_session = models.ForeignKey(to='PickSession', on_delete=models.CASCADE)
+    pick_session = models.ForeignKey(to='PickSession', null=True, on_delete=models.CASCADE)
+    pick_round = models.ForeignKey(to='PickSessionRound', null=True, on_delete=models.CASCADE)
     videos_pair = models.ManyToManyField(verbose_name='Videos pair', to=YoutubeVideo, related_name='pairs')
     completed = models.BooleanField('Completed', default=False)
     pick = models.ForeignKey(verbose_name='User pick', to=YoutubeVideo,
                              null=True, on_delete=models.CASCADE,
                              default=None)
     single = models.BooleanField('Is single', default=False)
+    pick_round = models.ForeignKey(to='PickSessionRound', null=True, on_delete=models.CASCADE)
 
 
 class PickPlaylist(models.Model):
@@ -48,7 +49,18 @@ class PickSession(models.Model):
         PickSession model. Creates when user wants to play in pick game and generates
         new pairs based on youtube playlist videos.
     '''
-
+    current_round = models.ForeignKey(to='PickSessionRound', null=True, on_delete=models.SET_NULL)
     user = models.ForeignKey(to=User, on_delete=models.CASCADE)
     pick_playlist = models.ForeignKey(to=PickPlaylist, on_delete=models.CASCADE)
     completed = models.BooleanField('Completed', blank=False, default=False)
+
+
+class PickSessionRound(models.Model):
+    '''
+        PickSessionRound model.
+
+        Must be created on every pick round, when user complete all
+            available pick pairs.
+    '''
+    completed = models.BooleanField('Completed', default=False)
+    pick_session = models.ForeignKey(to=PickSession, on_delete=models.CASCADE)

@@ -1,4 +1,4 @@
-from backend.services.pickle import make_pairs_from_videos_list
+from backend.services.pickle import make_pairs_from_videos_list, make_pick_round_from_videos_list
 from rest_framework.response import Response
 from rest_framework.decorators import \
     api_view, permission_classes, authentication_classes
@@ -61,20 +61,26 @@ def create_pick_session(request):
         pick_playlist=request.data['pick_playlist_id']
     ))
 
-    pairs = make_pairs_from_videos_list(
-        pick_playlist_videos,
-        pick_session
-    )
+    round = make_pick_round_from_videos_list(pick_session, pick_playlist_videos)
+    pick_session.current_round = round
 
     return Response(
         {
             'id': pick_session.id,
+            'pick_playlist_id': request.data['pick_playlist_id'],
             'author_id': pick_session.user.id,
-            'pairs': [
+            'current_round': {
+                'id': round.id,
+                'completed': round.completed,
+                'pairs': [
                     {
                         'id': pair.id,
-                        'is_single': pair.single,
-                    } for pair in pairs
+                        'completed': pair.completed,
+                        'pick': pair.pick,
+                        'is_single': pair.single
+                    } for pair in round.pickpair_set.all()
                 ]
-        }
+            }
+        },
+        status=HTTP_201_CREATED
     )
