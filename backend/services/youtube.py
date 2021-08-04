@@ -5,8 +5,6 @@ import googleapiclient.discovery
 import googleapiclient.errors
 from django.conf import settings
 
-
-
 class YoutubeApi:
     youtube_service = None
     authenticated = False
@@ -71,5 +69,3 @@ class YoutubeApi:
             print(len(items))
 
         return items
-
-    

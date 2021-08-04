@@ -1,4 +1,4 @@
-from backend.models import PickSession, PickPair, PickSessionRound
+from backend.models import PickPair, PickSession, PickSessionRound
 from django.db.models import Q
 
 
@@ -56,12 +56,22 @@ def get_round_completed_choices(pick_round_id):
 
 
 def is_round_completed(pick_round_id):
-    query = Q(completed=True)
-    query.add(Q(single=True), Q.OR)
+    query = Q(completed=False)
+    query.add(Q(single=False), Q.AND)
     completed_round_pairs = PickSessionRound.objects.get(id=pick_round_id) \
         .pickpair_set.filter(query)
+    print(completed_round_pairs)
 
     if not completed_round_pairs:
         return True
     else:
         return False
+
+
+def pick_video_from_pair(pick_pair_id, choiced_video_id):
+    pair = PickPair.objects.get(id=pick_pair_id)
+    pair.completed = True
+    pair.pick = choiced_video_id
+    pair.save()
+    
+    return pair
