@@ -7,13 +7,14 @@ from rest_framework.response import Response
 from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
                                    HTTP_400_BAD_REQUEST)
 
-from backend.serializers import PickPairSerializer
+from backend.serializers import YoutubeVideoSerializer, PickPairSerializer
 from backend.services.pickle import (get_round_completed_choices,
                                      is_round_completed,
                                      make_pick_round_from_videos_list,
                                      pick_video_from_pair)
 
 from .models import PickPair, PickPlaylist, PickSession, YoutubeVideo
+from .permissions import IsPickPairOwnerOrSuperuser, IsPickSessionOwnerOrSuperuser
 from .services.youtube import YoutubeApi
 
 
@@ -84,7 +85,10 @@ def create_pick_session(request):
                         'id': pair.id,
                         'completed': pair.completed,
                         'pick': pair.pick,
-                        'is_single': pair.single
+                        'is_single': pair.single,
+                        'pick_videos': [
+                            YoutubeVideoSerializer(video).data 
+                            for video in pair.videos_pair.all()]
                     } for pair in round.pickpair_set.all()
                 ]
             }
@@ -93,20 +97,9 @@ def create_pick_session(request):
     )
 
 
-@api_view(['PUT'])
-@authentication_classes([SessionAuthentication, BasicAuthentication])
-@permission_classes([IsAuthenticated])
-def make_pair_choice(request):
-    pair = PickPair.objects.get(id=request.data['pick_pair_id'])
-    pair.completed = True
-    pair.pick = YoutubeVideo.objects.get(id=request.data['video_internal_id'])
-    pair.save()
-    return Response(status=HTTP_200_OK)
-
-
 @api_view(['GET'])
 @authentication_classes([SessionAuthentication, BasicAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsPickSessionOwnerOrSuperuser])
 def get_next_session_round(request):
     pick_session_id = request.query_params['pick_session_id']
     pick_session = PickSession.objects.get(id=pick_session_id)
@@ -142,9 +135,9 @@ def get_next_session_round(request):
         )
 
 
-@api_view(['POST'])
+@api_view(['PUT'])
 @authentication_classes([SessionAuthentication, BasicAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsPickPairOwnerOrSuperuser])
 def pick_pair_video(request):
     updated_pair = pick_video_from_pair(
         request.data['pick_pair_id'],

@@ -1,6 +1,12 @@
 from rest_framework.serializers import ModelSerializer
 
-from .models import PickPair, PickSession, PickSessionRound
+from .models import PickPair, PickSession, PickSessionRound, YoutubeVideo
+
+
+class YoutubeVideoSerializer(ModelSerializer):
+    class Meta:
+        model = YoutubeVideo
+        fields = '__all__'
 
 
 class PickPairSerializer(ModelSerializer):
