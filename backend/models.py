@@ -52,6 +52,7 @@ class PickSession(models.Model):
     current_round = models.ForeignKey(to='PickSessionRound', null=True, on_delete=models.SET_NULL)
     user = models.ForeignKey(to=User, on_delete=models.CASCADE)
     pick_playlist = models.ForeignKey(to=PickPlaylist, on_delete=models.CASCADE)
+    pick = models.ForeignKey(to=YoutubeVideo, null=True, on_delete=models.SET_NULL)
     completed = models.BooleanField('Completed', blank=False, default=False)
 
 

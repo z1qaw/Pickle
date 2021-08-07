@@ -4,14 +4,15 @@ from rest_framework.decorators import (api_view, authentication_classes,
                                        permission_classes)
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED,
-                                   HTTP_400_BAD_REQUEST)
+from rest_framework.status import (HTTP_200_OK, HTTP_201_CREATED, HTTP_202_ACCEPTED,
+                                   HTTP_400_BAD_REQUEST, HTTP_304_NOT_MODIFIED)
 
-from backend.serializers import YoutubeVideoSerializer, PickPairSerializer
+from backend.serializers import PickSessionDetailsSerializer, YoutubeVideoSerializer, PickPairSerializer
 from backend.services.pickle import (get_round_completed_choices,
                                      is_round_completed,
                                      make_pick_round_from_videos_list,
-                                     pick_video_from_pair)
+                                     pick_video_from_pair,
+                                     pick_session_can_be_completed)
 
 from .models import PickPair, PickPlaylist, PickSession, YoutubeVideo
 from .permissions import IsPickPairOwnerOrSuperuser, IsPickSessionOwnerOrSuperuser
@@ -71,6 +72,7 @@ def create_pick_session(request):
 
     round = make_pick_round_from_videos_list(pick_session, pick_playlist_videos)
     pick_session.current_round = round
+    pick_session.save()
 
     return Response(
         {
@@ -143,4 +145,28 @@ def pick_pair_video(request):
         request.data['pick_pair_id'],
         request.data['choiced_video_id']
     )
-    return Response(PickPairSerializer(updated_pair).data, status=HTTP_200_OK)
+    return Response(
+        PickPairSerializer(updated_pair).data,
+        status=HTTP_200_OK
+    )
+
+
+@api_view(['GET'])
+@authentication_classes([SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated, IsPickSessionOwnerOrSuperuser])
+def submit_pick_session_completion(request):
+    pick_session_id = request.data['pick_session_id']
+    approve = pick_session_can_be_completed(pick_session_id)
+    pick_session = PickSession.objects.get(id=pick_session_id)
+    status = HTTP_304_NOT_MODIFIED
+
+    if approve:
+        pick_session.completed = True
+        pick_session.pick = pick_session.current_round.pickpair_set.all()[0].pick
+        pick_session.save()
+        status = HTTP_202_ACCEPTED
+
+    return Response(
+        data=PickSessionDetailsSerializer(pick_session),
+        status=status
+    )

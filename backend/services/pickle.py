@@ -75,3 +75,15 @@ def pick_video_from_pair(pick_pair_id, choiced_video_id):
     pair.save()
     
     return pair
+
+
+def pick_session_can_be_completed(pick_session_id):
+    pick_session_current_round_picks = PickSession.objects.get(
+        pick_session_id
+    ).current_round.pickpair_set.all()
+    
+    if len(pick_session_current_round_picks) == 1:
+        last_pair_is_completed = pick_session_current_round_picks[0].completed
+        return last_pair_is_completed
+    else: 
+        return False
